@@ -14,8 +14,24 @@ struct DFA {
     set<int> accept_states;
 };
 
-DFA minimizeDFA(const DFA& dfa);  // Implement the minimization here
-void printDFA(const DFA& dfa);
+void preprocessing(const DFA& dfa, vector<set<int>>& partitions) {
+    set<int> finalStates = dfa.accept_states;
+    set<int> nonFinalStates;
+
+    for (int state : dfa.states) {
+        if (dfa.accept_states.find(state) == dfa.accept_states.end()) {
+            nonFinalStates.insert(state);
+        }
+    }
+
+    if (!finalStates.empty()) {
+        partitions.push_back(finalStates);
+    }
+
+    if (!nonFinalStates.empty()) {
+        partitions.push_back(nonFinalStates);
+    }
+}
 
 int main() {
     DFA dfa;
