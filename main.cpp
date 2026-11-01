@@ -33,6 +33,38 @@ void preprocessing(const DFA& dfa, vector<set<int>>& partitions) {
     }
 }
 
+DFA minimizeDFA(const DFA& dfa);  // Implement the minimization here
+
+void printDFA(const DFA& dfa) {
+    cout << "\n========== DFA ==========\n";
+
+    cout << "States: ";
+    for (int state : dfa.states) {
+        cout << state << " ";
+    }
+
+    cout << "\nAlphabet: ";
+    for (char character : dfa.alphabet) {
+        cout << character << " ";
+    }
+
+    cout << "\nStart state: " << dfa.start_state;
+
+    cout << "\nFinal states: ";
+    for (int state : dfa.accept_states) {
+        cout << state << " ";
+    }
+
+    cout << "\n\nTransitions:\n";
+
+    for (int state : dfa.states) {
+        for (char symbol : dfa.alphabet) {
+            cout << "Delta(" << state << ", " << symbol << ") = "
+                 << dfa.transitions.at(state).at(symbol) << "\n";
+        }
+    }
+}
+
 int main() {
     DFA dfa;
     int n, k;
