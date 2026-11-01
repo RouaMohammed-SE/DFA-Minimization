@@ -120,6 +120,7 @@ int main() {
     // 6. Minimize DFA
 
     // 7. Print result
+    printDFA(dfa);
 
     return 0;
 }
