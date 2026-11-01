@@ -14,56 +14,9 @@ struct DFA {
     set<int> accept_states;
 };
 
-void preprocessing(const DFA& dfa, vector<set<int>>& partitions) {
-    set<int> finalStates = dfa.accept_states;
-    set<int> nonFinalStates;
-
-    for (int state : dfa.states) {
-        if (dfa.accept_states.find(state) == dfa.accept_states.end()) {
-            nonFinalStates.insert(state);
-        }
-    }
-
-    if (!finalStates.empty()) {
-        partitions.push_back(finalStates);
-    }
-
-    if (!nonFinalStates.empty()) {
-        partitions.push_back(nonFinalStates);
-    }
-}
-
+DFA preprocessDFA(const DFA& dfa);  // Preprocessing: remove unreachable states
 DFA minimizeDFA(const DFA& dfa);  // Implement the minimization here
-
-void printDFA(const DFA& dfa) {
-    cout << "\n========== DFA ==========\n";
-
-    cout << "States: ";
-    for (int state : dfa.states) {
-        cout << state << " ";
-    }
-
-    cout << "\nAlphabet: ";
-    for (char character : dfa.alphabet) {
-        cout << character << " ";
-    }
-
-    cout << "\nStart state: " << dfa.start_state;
-
-    cout << "\nFinal states: ";
-    for (int state : dfa.accept_states) {
-        cout << state << " ";
-    }
-
-    cout << "\n\nTransitions:\n";
-
-    for (int state : dfa.states) {
-        for (char symbol : dfa.alphabet) {
-            cout << "Delta(" << state << ", " << symbol << ") = "
-                 << dfa.transitions.at(state).at(symbol) << "\n";
-        }
-    }
-}
+void printDFA(const DFA& dfa);
 
 int main() {
     DFA dfa;
@@ -123,4 +76,79 @@ int main() {
     printDFA(dfa);
 
     return 0;
+}
+
+DFA preprocessDFA(const DFA& dfa) {
+    set<int> reachable;
+    queue<int> q;
+
+    reachable.insert(dfa.start_state);
+    q.push(dfa.start_state);
+
+    while (!q.empty()) {
+        int current = q.front();
+        q.pop();
+
+        auto it = dfa.transitions.find(current);
+        if (it == dfa.transitions.end()) continue;
+
+        for (char symbol : dfa.alphabet) {
+            auto t = it->second.find(symbol);
+            if (t == it->second.end()) continue;
+
+            int next = t->second;
+            if (reachable.insert(next).second) {
+                q.push(next);
+            }
+        }
+    }
+
+    DFA result;
+    result.alphabet = dfa.alphabet;
+    result.start_state = dfa.start_state;
+    result.states = reachable;
+
+    for (int s : reachable) {
+        if (dfa.accept_states.count(s)) result.accept_states.insert(s);
+
+        auto it = dfa.transitions.find(s);
+        if (it == dfa.transitions.end()) continue;
+        for (char symbol : dfa.alphabet) {
+            auto t = it->second.find(symbol);
+            if (t != it->second.end()) result.transitions[s][symbol] = t->second;
+        }
+    }
+
+    return result;
+}
+
+void printDFA(const DFA& dfa) {
+    cout << "\n===== DFA =====\n";
+
+    cout << "States: ";
+    for (int s : dfa.states) cout << s << " ";
+    cout << "\n";
+
+    cout << "Alphabet: ";
+    for (char c : dfa.alphabet) cout << c << " ";
+    cout << "\n";
+
+    cout << "Start state: " << dfa.start_state << "\n";
+
+    cout << "Final states: ";
+    for (int s : dfa.accept_states) cout << s << " ";
+    cout << "\n";
+
+    cout << "Transitions:\n";
+    for (int s : dfa.states) {
+        auto it = dfa.transitions.find(s);
+        for (char c : dfa.alphabet) {
+            cout << "  Delta(" << s << ", " << c << ") = ";
+            if (it != dfa.transitions.end() && it->second.count(c))
+                cout << it->second.at(c);
+            else
+                cout << "-";
+            cout << "\n";
+        }
+    }
 }
