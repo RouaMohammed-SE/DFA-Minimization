@@ -9,7 +9,7 @@ using namespace std;
 struct DFA {
     set<int> states;
     set<char> alphabet;
-    map<int, map<char, int>> transitions;
+    map<pair<int, char>, int> transitions;
     int start_state;
     set<int> accept_states;
 };
@@ -65,16 +65,22 @@ int main() {
     }
 
     // 5. Read transitions
-    cout << "\nEnter transitions:\n";
-    for (int state : dfa.states) {
-        for (char symbol : dfa.alphabet) {
-            int destination;
+    // 5. Read transitions
+    int transitionCount;
 
-            cout << "Delta(" << state << ", " << symbol << ") = ";
-            cin >> destination;
+    cout << "Enter number of transitions: ";
+    cin >> transitionCount;
 
-            dfa.transitions[state][symbol] = destination;
-        }
+    cout << "Enter transitions (from to symbol):\n";
+
+    for (int i = 0; i < transitionCount; i++)
+    {
+        int from, to;
+        char symbol;
+
+        cin >> from >> to >> symbol;
+
+        dfa.transitions[{from, symbol}] = to;
     }
 
     // 6. Minimize DFA
@@ -96,14 +102,15 @@ DFA preprocessDFA(const DFA& dfa) {
         int current = q.front();
         q.pop();
 
-        auto it = dfa.transitions.find(current);
-        if (it == dfa.transitions.end()) continue;
-
         for (char symbol : dfa.alphabet) {
-            auto t = it->second.find(symbol);
-            if (t == it->second.end()) continue;
 
-            int next = t->second;
+            auto it = dfa.transitions.find({current, symbol});
+
+            if (it == dfa.transitions.end())
+                continue;
+
+            int next = it->second;
+
             if (reachable.insert(next).second) {
                 q.push(next);
             }
@@ -118,11 +125,13 @@ DFA preprocessDFA(const DFA& dfa) {
     for (int s : reachable) {
         if (dfa.accept_states.count(s)) result.accept_states.insert(s);
 
-        auto it = dfa.transitions.find(s);
-        if (it == dfa.transitions.end()) continue;
         for (char symbol : dfa.alphabet) {
-            auto t = it->second.find(symbol);
-            if (t != it->second.end()) result.transitions[s][symbol] = t->second;
+
+            auto it = dfa.transitions.find({s, symbol});
+
+            if (it != dfa.transitions.end()) {
+                result.transitions[{s, symbol}] = it->second;
+            }
         }
     }
 
@@ -147,17 +156,21 @@ void printDFA(const DFA& dfa) {
     cout << "\n";
 
     cout << "Transitions:\n";
-    for (int s : dfa.states) {
-        auto it = dfa.transitions.find(s);
-        for (char c : dfa.alphabet) {
-            cout << "  Delta(" << s << ", " << c << ") = ";
-            if (it != dfa.transitions.end() && it->second.count(c))
-                cout << it->second.at(c);
-            else
-                cout << "-";
-            cout << "\n";
-        }
+    for (int s : dfa.states)
+     {
+    for (char c : dfa.alphabet) {
+        cout << "Delta(" << s << ", " << c << ") = ";
+
+        auto it = dfa.transitions.find({s, c});
+
+        if (it != dfa.transitions.end())
+            cout << it->second;
+        else
+            cout << "-";
+
+        cout << "\n";
     }
+}
 }
 
 ReverseTransitions buildReverseTransitions(const DFA& dfa) {
@@ -172,8 +185,8 @@ ReverseTransitions buildReverseTransitions(const DFA& dfa) {
             // check every alphabet symbol
             for (char symbol : dfa.alphabet) {
                 // find where each state goes on this symbol
-                int r = dfa.transitions.at(p).at(symbol);
-                int s = dfa.transitions.at(q).at(symbol);
+                int r = dfa.transitions.at({p, symbol});
+            int s = dfa.transitions.at({q, symbol});
                 // if both states go to the same state, there is no destination pair to store
                 if (r == s) {
                     continue;
