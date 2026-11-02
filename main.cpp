@@ -8,15 +8,15 @@ using namespace std;
 
 struct DFA
 {
-    set<int> states;
+    set<string> states;
     set<char> alphabet;
-    map<pair<int, char>, int> transitions;
-    int start_state;
-    set<int> accept_states;
+    map<pair<string, char>, string> transitions;
+    string start_state;
+    set<string> accept_states;
 };
 
 // a map where the key is a destination pair, and the value is the set of original pairs that lead to it
-using ReverseTransitions = map<pair<int, int>, set<pair<int, int>>>;
+using ReverseTransitions = map<pair<string, string>, set<pair<string, string>>>;
 
 DFA preprocessDFA(const DFA& dfa);  // Preprocessing: remove unreachable states
 DFA minimizeDFA(DFA& dfa, ReverseTransitions& reverse_transitions);
@@ -34,7 +34,7 @@ int main() {
 
     for (int i = 0; i < n; i++)
     {
-        dfa.states.insert(i);
+        dfa.states.insert(to_string(i));
     }
 
     // 2. Read alphabet
@@ -61,7 +61,7 @@ int main() {
     cout << "Enter final states: ";
     for (int i = 0; i < finalCount; i++)
     {
-        int state;
+        string state;
         cin >> state;
         dfa.accept_states.insert(state);
     }
@@ -76,7 +76,7 @@ int main() {
 
     for (int i = 0; i < transitionCount; i++)
     {
-        int from, to;
+        string from, to;
         char symbol;
 
         cin >> from >> to >> symbol;
@@ -97,15 +97,15 @@ int main() {
 
 // function to remove unreachable states
 DFA preprocessDFA(const DFA& dfa) {
-    set<int> reachable;
-    queue<int> q;
+    set<string> reachable;
+    queue<string> q;
 
     reachable.insert(dfa.start_state);
     q.push(dfa.start_state);
 
     while (!q.empty())
     {
-        int current = q.front();
+        string current = q.front();
         q.pop();
 
         for (char symbol : dfa.alphabet)
@@ -116,7 +116,7 @@ DFA preprocessDFA(const DFA& dfa) {
             if (it == dfa.transitions.end())
                 continue;
 
-            int next = it->second;
+            string next = it->second;
 
             if (reachable.insert(next).second) {
                 q.push(next);
@@ -129,7 +129,7 @@ DFA preprocessDFA(const DFA& dfa) {
     result.start_state = dfa.start_state;
     result.states = reachable;
 
-    for (int s : reachable)
+    for (string s : reachable)
     {
         if (dfa.accept_states.count(s)) result.accept_states.insert(s);
 
@@ -148,10 +148,10 @@ DFA preprocessDFA(const DFA& dfa) {
 }
 
 void printDFA(const DFA& dfa) {
-    cout << "\n===== DFA =====\n";
+    cout << "\n===== Minimized DFA =====\n";
 
     cout << "States: ";
-    for (int s : dfa.states) cout << s << " ";
+    for (string s : dfa.states) cout << s << ' ';
     cout << "\n";
 
     cout << "Alphabet: ";
@@ -161,15 +161,15 @@ void printDFA(const DFA& dfa) {
     cout << "Start state: " << dfa.start_state << "\n";
 
     cout << "Final states: ";
-    for (int s : dfa.accept_states) cout << s << " ";
+    for (string s : dfa.accept_states) cout << s << ' ';
     cout << "\n";
 
     cout << "Transitions:\n";
-    for (int s : dfa.states)
+    for (string s : dfa.states)
     {
         for (char c : dfa.alphabet)
         {
-            cout << "Delta(" << s << ", " << c << ") = ";
+            cout << "(" << s << ", " << c << ") = ";
 
             auto it = dfa.transitions.find({s, c});
 
@@ -186,9 +186,9 @@ void printDFA(const DFA& dfa) {
 ReverseTransitions buildReverseTransitions(const DFA& dfa) {
     ReverseTransitions reverseTransitions;
     // loop over every possible pair of different states
-    for(int p : dfa.states)
+    for(string p : dfa.states)
     {
-        for(int q : dfa.states)
+        for(string q : dfa.states)
         {
             // avoid (0,0), (1,1), and duplicate pairs
             if(p >= q)
@@ -199,16 +199,16 @@ ReverseTransitions buildReverseTransitions(const DFA& dfa) {
             for (char symbol : dfa.alphabet)
             {
                 // find where each state goes on this symbol
-                int r = dfa.transitions.at({p, symbol});
-                int s = dfa.transitions.at({q, symbol});
+                string r = dfa.transitions.at({p, symbol});
+                string s = dfa.transitions.at({q, symbol});
                 // if both states go to the same state, there is no destination pair to store
                 if (r == s)
                 {
                     continue;
                 }
                 // create the destination pair in a consistent order
-                pair<int, int> destinationPair = {min(r, s), max(r, s)};
-                pair<int, int> originalPair = {p, q};
+                pair<string, string> destinationPair = {min(r, s), max(r, s)};
+                pair<string, string> originalPair = {p, q};
                 // store: destination pair -> original pair
                 reverseTransitions[destinationPair].insert(originalPair);
             }
@@ -218,13 +218,13 @@ ReverseTransitions buildReverseTransitions(const DFA& dfa) {
 }
 
 DFA minimizeDFA(DFA& dfa, ReverseTransitions& reverseTransitions) {
-    map<pair<int,int>, bool> marks;
-    queue<pair<int, int>> q;
+    map<pair<string,string>, bool> marks;
+    queue<pair<string, string>> q;
 
     // Initialize every pair as equivalent
-    for (int p : dfa.states)
+    for (string p : dfa.states)
     {
-        for (int r : dfa.states)
+        for (string r : dfa.states)
         {
             if (p < r)
                 marks[{p, r}] = true;
@@ -259,22 +259,22 @@ DFA minimizeDFA(DFA& dfa, ReverseTransitions& reverseTransitions) {
         }
     }
 
-    vector<vector<int>> classes;
-    map<int, int> newState;
+    vector<vector<string>> classes;
+    map<string, string> newState;
 
     // function to check if 2 states are equivelant
-    auto isEquivalent = [&](int p, int r)
+    auto isEquivalent = [&](string p, string r)
     {
         if (p == r)
             return true;
         return marks[{min(p, r), max(p, r)}];
     };
 
-    for (int s : dfa.states) {
+    for (string s : dfa.states) {
         bool found = false;
         for (int i = 0; i < classes.size(); i++)
         {
-            int representative = classes[i][0];
+            string representative = classes[i][0];
             if (isEquivalent(s, representative))
             {
                 classes[i].push_back(s);
@@ -295,23 +295,45 @@ DFA minimizeDFA(DFA& dfa, ReverseTransitions& reverseTransitions) {
     minimizedDFA.alphabet = dfa.alphabet;
     minimizedDFA.start_state = newState.at(dfa.start_state);
 
+    vector<string> classNames(classes.size());
     for (int i = 0; i < classes.size(); i++)
     {
-        minimizedDFA.states.insert(i);
-        int representative = classes[i][0];
-        if (dfa.accept_states.count(representative))
+        string curState = "{";
+        for (int j = 0; j < classes[i].size(); j++)
         {
-            minimizedDFA.accept_states.insert(i);
+            curState += classes[i][j];
+            if (j != classes[i].size() - 1)
+                curState += ",";
         }
+        curState += "}";
+        classNames[i] = curState;
+        minimizedDFA.states.insert(curState);
 
-        // Build transitions using the representative
-        for (char symbol : dfa.alphabet)
+        for (string state : classes[i])
+            newState[state] = curState;
+
+        if (dfa.accept_states.count(classes[i][0]))
+            minimizedDFA.accept_states.insert(curState);
+
+        minimizedDFA.start_state = newState[dfa.start_state];
+
+        for (int i = 0; i < classes.size(); i++)
         {
-            int destination = dfa.transitions[{representative, symbol}];
-            int newDestination = newState[destination];
-            minimizedDFA.transitions[{i, symbol}] = newDestination;
+            string representative = classes[i][0];
+            string currentClass = classNames[i];
+            for (char symbol : dfa.alphabet)
+            {
+                auto it = dfa.transitions.find({representative, symbol});
+                // Handle missing transitions
+                if (it == dfa.transitions.end())
+                    continue;
+
+                string destination = it->second;
+                string newDestination = newState.at(destination);
+
+                minimizedDFA.transitions[{currentClass, symbol}] = newDestination;
+            }
         }
     }
-
     return minimizedDFA;
 }
