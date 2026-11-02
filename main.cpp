@@ -14,9 +14,16 @@ struct DFA {
     set<int> accept_states;
 };
 
+// a pair of existing DFA states
+using StatePair = pair<int, int>;
+// a map where the key is a destination pair, and the value is the set of original pairs that lead to it
+using ReverseTransitions = map<StatePair, set<StatePair>>;
+
 DFA preprocessDFA(const DFA& dfa);  // Preprocessing: remove unreachable states
 DFA minimizeDFA(const DFA& dfa);  // Implement the minimization here
 void printDFA(const DFA& dfa);
+// build the reverse transition table to find which state pairs lead to each destination pair for every alphabet symbol
+ReverseTransitions buildReverseTransitions(const DFA& dfa);
 
 int main() {
     DFA dfa;
@@ -149,6 +156,36 @@ void printDFA(const DFA& dfa) {
             else
                 cout << "-";
             cout << "\n";
+        }
+    }
+}
+
+ReverseTransitions buildReverseTransitions(const DFA& dfa) {
+    ReverseTransitions reverseTransitions;
+    // loop over every possible pair of different states
+    for(int p : dfa.states) {
+        for(int q : dfa.states) {
+            // avoid (0,0), (1,1), and duplicate pairs
+            if(p >= q) {
+                continue;
+            }
+            // check every alphabet symbol
+            for (char symbol : dfa.alphabet) {
+                // find where each state goes on this symbol
+                int r = dfa.transitions.at(p).at(symbol);
+                int s = dfa.transitions.at(q).at(symbol);
+                // if both states go to the same state, there is no destination pair to store
+                if (r == s) {
+                    continue;
+                } 
+                // create the destination pair in a consistent order
+                StatePair destinationPair = {
+                    min(r, s), max(r, s)
+                };
+                StatePair originalPair = {p, q};
+                // store: destination pair -> original pair
+                reverseTransitions[destinationPair].insert(originalPair);
+            }
         }
     }
 }
