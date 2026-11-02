@@ -188,4 +188,5 @@ ReverseTransitions buildReverseTransitions(const DFA& dfa) {
             }
         }
     }
+    return reverseTransitions;
 }
