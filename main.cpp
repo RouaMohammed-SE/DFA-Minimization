@@ -159,6 +159,43 @@ DFA preprocessDFA(const DFA& dfa)
         }
     }
 
+    // Add trap state (phi) if any transition is missing
+    bool incomplete = false;
+
+    for (string s : result.states)
+    {
+        for (char symbol : result.alphabet)
+        {
+            if (!result.transitions.count({s, symbol}))
+            {
+                incomplete = true;
+            }
+        }
+    }
+
+    if (incomplete)
+    {
+        string phi = "phi";
+
+        while (result.states.count(phi))
+        {
+            phi += "_";   // avoid collision with an existing state name
+        }
+
+        result.states.insert(phi);
+
+        for (string s : result.states)   // includes phi itself
+        {
+            for (char symbol : result.alphabet)
+            {
+                if (!result.transitions.count({s, symbol}))
+                {
+                    result.transitions[{s, symbol}] = phi;
+                }
+            }
+        }
+    }
+
     return result;
 }
 
